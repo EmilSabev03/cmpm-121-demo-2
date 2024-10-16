@@ -1,3 +1,8 @@
-This is the starter code project for the `Demo 2` project in CMPM 121, Game
-Development Patterns, at UC Santa Cruz (fall quarter, 2024). Students should
-incrementally modify this project, tracking their progress with git.
+Name: Emil Sabev
+Assignment: D2: Sticker Sketchpad
+Description: Short but functional canvas sketching webpage
+
+Credits:
+
+-used and modified this event listener code for Step 2: https://quant-paint.glitch.me/paint0.html
+
