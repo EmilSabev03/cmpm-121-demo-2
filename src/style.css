@@ -13,6 +13,11 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* add canvas border */
+canvas {
+  border: black 3px solid;
+}
+
 a {
   font-weight: 500;
   color: #646cff;
