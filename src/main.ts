@@ -15,14 +15,16 @@ canvas.width = 256;
 canvas.height = 256;
 app.appendChild(canvas);
 
-//add array of points
+//add array of points, undoPoints, and redoPoints
 let points: {x: number, y: number}[][] = [];
+let undoPoints: {x: number, y: number}[][] = [];
+let redoPoints: {x: number, y: number}[][] = [];
 
 //add context and cursor to draw
 const context = canvas.getContext("2d");
 const cursor = { active: false, x: 0, y: 0 };
 
-//add clear button and event listener for clear button
+//add event listener and button for clear
 const clearButton = document.createElement("button");
 clearButton.innerHTML = "clear";
 document.body.append(clearButton);
@@ -31,6 +33,38 @@ clearButton.addEventListener("click", () =>
 {
     if (context != null) { context.clearRect(0, 0, canvas.width, canvas.height); }
     points.length = 0;
+    undoPoints.length = 0;  
+    redoPoints.length = 0;
+});
+
+//add event listener and button for undo
+const undoButton = document.createElement("button");
+undoButton.innerHTML = "undo";
+document.body.append(undoButton);
+
+undoButton.addEventListener("click", () => 
+{
+    if (points.length > 0)
+    {
+        const undoLine = points.pop()!;
+        redoPoints.push(undoLine);
+        drawingChangedObserver();
+    }
+});
+
+//add event listener and button for redo
+const redoButton = document.createElement("button");
+redoButton.innerHTML = "redo";
+document.body.append(redoButton);
+
+redoButton.addEventListener("click", () => 
+{
+    if (redoPoints.length > 0)
+    {
+        const redoLine = redoPoints.pop()!;
+        points.push(redoLine);
+        drawingChangedObserver();
+    }
 });
 
 //add event listeners for mouse movement
@@ -40,7 +74,6 @@ canvas.addEventListener("mousedown", (event) =>
     cursor.x = event.offsetX;
     cursor.y = event.offsetY;
     points.push([{ x: cursor.x, y: cursor.y}]);
-
 });
 
 canvas.addEventListener("mousemove", (event) => 
