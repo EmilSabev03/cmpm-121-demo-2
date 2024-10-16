@@ -15,6 +15,9 @@ canvas.width = 256;
 canvas.height = 256;
 app.appendChild(canvas);
 
+//add array of points
+let points: {x: number, y: number}[][] = [];
+
 //add context and cursor to draw
 const context = canvas.getContext("2d");
 const cursor = { active: false, x: 0, y: 0 };
@@ -27,6 +30,7 @@ document.body.append(clearButton);
 clearButton.addEventListener("click", () => 
 {
     if (context != null) { context.clearRect(0, 0, canvas.width, canvas.height); }
+    points.length = 0;
 });
 
 //add event listeners for mouse movement
@@ -35,20 +39,26 @@ canvas.addEventListener("mousedown", (event) =>
     cursor.active = true;
     cursor.x = event.offsetX;
     cursor.y = event.offsetY;
+    points.push([{ x: cursor.x, y: cursor.y}]);
+
 });
 
 canvas.addEventListener("mousemove", (event) => 
 {
     if (cursor.active && context != null) 
     {
-        context.beginPath();
-        context.moveTo(cursor.x, cursor.y);
-        context.lineTo(event.offsetX, event.offsetY);
-        context.stroke();
         cursor.x = event.offsetX;
         cursor.y = event.offsetY;
+
+        const currentLine = points[points.length - 1];
+        currentLine.push({ x: cursor.x, y: cursor.y });
+
+        //drawing changed event and dispatch event to observer
+        const drawingChangedEvent = new CustomEvent("drawing-changed", { detail: { x: cursor.x, y: cursor.y }});
+        canvas.dispatchEvent(drawingChangedEvent);
     }
 });
+
 
 canvas.addEventListener("mouseup", () => 
 {
@@ -56,3 +66,36 @@ canvas.addEventListener("mouseup", () =>
 });
 
 
+canvas.addEventListener("drawing-changed", (event) => 
+{
+    drawingChangedObserver(); 
+})
+
+
+//observer for drawing-changed event
+function drawingChangedObserver()
+{
+    if (context != null)
+    {
+        context.clearRect(0, 0, canvas.width, canvas.height);
+        context.beginPath();
+
+        for (let i = 0; i < points.length; i++)
+        {
+            let line = points[i];
+            for (let j = 0; j < line.length; j++)
+            {
+                const point = line[j];
+                if (j === 0)
+                {
+                    context.moveTo(point.x, point.y)    
+                }
+                else
+                {
+                    context.lineTo(point.x, point.y)
+                }
+            }
+        }     
+        context.stroke();
+    }
+}
