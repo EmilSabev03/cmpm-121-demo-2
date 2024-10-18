@@ -2,6 +2,62 @@ import "./style.css";
 
 const app = document.querySelector<HTMLDivElement>("#app")!;
 
+//define interface for displaying context
+interface Displayable
+{
+    display(context: CanvasRenderingContext2D): void;
+}
+
+//define class that handles line commands
+class LineCommand implements Displayable
+{
+    points: { x: number; y: number }[];
+
+    constructor( x: number, y: number )
+    {
+        this.points = [{ x, y }]
+    }
+
+    drag(x: number, y: number)
+    {
+        this.points.push({x, y});
+    }
+
+    display(context: CanvasRenderingContext2D)
+    {
+        context.strokeStyle = "black";
+        context.lineWidth = 4;
+        context.beginPath();
+        const {x, y} = this.points[0];
+        context.moveTo(x,y);
+        for (const {x, y} of this.points)
+        {
+            context.lineTo(x, y);
+        }
+        context.stroke();
+    }
+
+}
+
+//define class that handles cursor commands
+class CursorCommand implements Displayable
+{
+    x: number;
+    y: number;
+
+    constructor (x: number, y: number)
+    {
+        this.x = x;
+        this.y = y;
+    }
+
+    display(context: CanvasRenderingContext2D)
+    {
+        context.font = "32px monospace";
+        context.fillText("*", this.x - 8, this.y + 16);
+    }
+}
+
 //add title to webpage
 const title = "Test";
 document.title = title;
@@ -15,14 +71,39 @@ canvas.width = 256;
 canvas.height = 256;
 app.appendChild(canvas);
 
-//add array of points, undoPoints, and redoPoints
-let points: {x: number, y: number}[][] = [];
-let undoPoints: {x: number, y: number}[][] = [];
-let redoPoints: {x: number, y: number}[][] = [];
+//add array of points. redoPoints, and cursorCommand
+let commands: LineCommand[] = [];
+let redoCommands: LineCommand[] = [];
+let cursorCommand: CursorCommand | null = null;
 
 //add context and cursor to draw
 const context = canvas.getContext("2d");
 const cursor = { active: false, x: 0, y: 0 };
+
+
+//add event bus and notify function
+const bus = new EventTarget();
+
+function notify(name: string) 
+{
+    bus.dispatchEvent(new Event(name));
+}
+
+//redraw function that utilizes commands
+function redraw()
+{
+    clearCanvas();
+    commands.forEach((command) => command.display(context!));
+
+    if (cursorCommand)
+    {
+        cursorCommand.display(context!);
+    }
+}
+
+bus.addEventListener("drawing-changed", redraw);
+bus.addEventListener("cursor-changed", redraw);
+
 
 //add event listener and button for clear
 const clearButton = document.createElement("button");
@@ -31,10 +112,10 @@ document.body.append(clearButton);
 
 clearButton.addEventListener("click", () => 
 {
-    if (context != null) { context.clearRect(0, 0, canvas.width, canvas.height); }
-    points.length = 0;
-    undoPoints.length = 0;  
-    redoPoints.length = 0;
+    if (context != null) { clearCanvas(); }
+    commands.length = 0;
+    redoCommands.length = 0;
+    notify("drawing-changed");
 });
 
 //add event listener and button for undo
@@ -44,11 +125,11 @@ document.body.append(undoButton);
 
 undoButton.addEventListener("click", () => 
 {
-    if (points.length > 0)
+    if (commands.length > 0)
     {
-        const undoLine = points.pop()!;
-        redoPoints.push(undoLine);
-        drawingChangedObserver();
+        const undoLine = commands.pop()!;
+        redoCommands.push(undoLine);
+        notify("drawing-changed");
     }
 });
 
@@ -59,76 +140,66 @@ document.body.append(redoButton);
 
 redoButton.addEventListener("click", () => 
 {
-    if (redoPoints.length > 0)
+    if (redoCommands.length > 0)
     {
-        const redoLine = redoPoints.pop()!;
-        points.push(redoLine);
-        drawingChangedObserver();
+        const redoLine = redoCommands.pop()!;
+        commands.push(redoLine);
+        notify("drawing-changed");
     }
 });
+
+let currentLineCommand: LineCommand | null = null;
 
 //add event listeners for mouse movement
 canvas.addEventListener("mousedown", (event) => 
 {
-    cursor.active = true;
-    cursor.x = event.offsetX;
-    cursor.y = event.offsetY;
-    points.push([{ x: cursor.x, y: cursor.y}]);
+    currentLineCommand = new LineCommand(event.offsetX, event.offsetY);
+    commands.push(currentLineCommand);
+    redoCommands.length = 0;
+    notify("drawing-changed");
 });
 
 canvas.addEventListener("mousemove", (event) => 
 {
-    if (cursor.active && context != null) 
+    cursor.x = event.offsetX;
+    cursor.y = event.offsetY;
+    cursor.active = true;
+
+    notify("cursor-changed");
+
+    if (event.buttons === 1 && currentLineCommand)
     {
-        cursor.x = event.offsetX;
-        cursor.y = event.offsetY;
-
-        const currentLine = points[points.length - 1];
-        currentLine.push({ x: cursor.x, y: cursor.y });
-
-        //drawing changed event and dispatch event to observer
-        const drawingChangedEvent = new CustomEvent("drawing-changed", { detail: { x: cursor.x, y: cursor.y }});
-        canvas.dispatchEvent(drawingChangedEvent);
+        currentLineCommand.drag(event.offsetX, event.offsetY);
+        notify("drawing-changed");
     }
 });
 
+canvas.addEventListener("mouseup", () => { cursor.active = false; });
+canvas.addEventListener("drawing-changed", (event) => { drawingChangedObserver(); })
 
-canvas.addEventListener("mouseup", () => 
+//function to simplify cleaning the canvas
+function clearCanvas()
 {
-    cursor.active = false;
-});
-
-
-canvas.addEventListener("drawing-changed", (event) => 
-{
-    drawingChangedObserver(); 
-})
-
+    context?.clearRect(0, 0, canvas.width, canvas.height);
+}
 
 //observer for drawing-changed event
 function drawingChangedObserver()
 {
     if (context != null)
     {
-        context.clearRect(0, 0, canvas.width, canvas.height);
+        clearCanvas();
         context.beginPath();
 
-        for (let i = 0; i < points.length; i++)
+        for (const line of commands)
         {
-            let line = points[i];
-            for (let j = 0; j < line.length; j++)
-            {
-                const point = line[j];
-                if (j === 0)
-                {
-                    context.moveTo(point.x, point.y)    
-                }
-                else
-                {
-                    context.lineTo(point.x, point.y)
-                }
-            }
-        }     
-        context.stroke();
+            line.display(context);
+        }
+        
+        if (cursor.active)
+        {
+            const cursorCommand = new CursorCommand(cursor.x, cursor.y);
+            cursorCommand.display(context);
+        }
     }
 }
