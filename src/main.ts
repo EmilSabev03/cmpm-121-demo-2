@@ -60,8 +60,32 @@ class CursorCommand implements Displayable
     }
 }
 
+//define class that handles tool preview command
+class ToolPreviewCommand implements Displayable
+{
+    x: number;
+    y: number;
+    lineThickness: number;
+
+    constructor(x: number, y: number, lineThickness: number)
+    {
+        this.x = x;
+        this.y = y;
+        this.lineThickness = lineThickness;
+    }
+
+    display(context: CanvasRenderingContext2D)
+    {
+        context.beginPath();
+        context.arc(this.x, this.y, this.lineThickness / 2, 0, Math.PI * 2);
+        context.fillStyle = 'black';
+        context.fill();
+        context.closePath();
+    }
+}
+
 //add title to webpage
-const title = "Test";
+const title = "Sticker Sketchpad";
 document.title = title;
 const header = document.createElement("h1");
 header.innerHTML = title;
@@ -73,11 +97,15 @@ canvas.width = 256;
 canvas.height = 256;
 app.appendChild(canvas);
 
-//add array of commands. redoCommands, cursorCommand, and currentLineThickness
+//add array of commands and redoCommands
 let commands: LineCommand[] = [];
 let redoCommands: LineCommand[] = [];
+
+//define global variables to handle commands
 let cursorCommand: CursorCommand | null = null;
 let currentLineThickness: number = 4;
+let toolPreviewCommand: ToolPreviewCommand | null = null;
+let currentLineCommand: LineCommand | null = null;
 
 //add context and cursor to draw
 const context = canvas.getContext("2d");
@@ -92,7 +120,7 @@ function notify(name: string)
     bus.dispatchEvent(new Event(name));
 }
 
-//redraw function that utilizes commands
+//redraws the canvas based on commands
 function redraw()
 {
     clearCanvas();
@@ -102,11 +130,19 @@ function redraw()
     {
         cursorCommand.display(context!);
     }
+    
+    if (toolPreviewCommand && !cursor.active)
+    {
+        toolPreviewCommand?.display(context!);
+    }
+
+    
 }
 
-//add drawing changed and cursor changed events to bus
+//add drawing changed, cursor changed, tool moved events to bus
 bus.addEventListener("drawing-changed", redraw);
 bus.addEventListener("cursor-changed", redraw);
+bus.addEventListener("tool-moved", redraw);
 
 
 //add all buttons and their respective event listeners to the webpage
@@ -152,9 +188,8 @@ function createButton(buttonText, onClick)
     return button;
 }
 
-let currentLineCommand: LineCommand | null = null;
 
-//add event listeners for mouse movement
+//event listeners for mouse input
 canvas.addEventListener("mousedown", (event) => 
 {
     currentLineCommand = new LineCommand(event.offsetX, event.offsetY, currentLineThickness);
@@ -171,7 +206,14 @@ canvas.addEventListener("mousemove", (event) =>
 
     notify("cursor-changed");
 
-    if (event.buttons === 1 && currentLineCommand)
+    if (event.buttons === 0)
+    {
+        cursor.active = false;
+        toolPreviewCommand = new ToolPreviewCommand(cursor.x, cursor.y, currentLineThickness);
+        notify("tool-moved");
+    }
+
+    if (event.buttons === 1 && currentLineCommand != null)
     {
         currentLineCommand.drag(event.offsetX, event.offsetY);
         notify("drawing-changed");
@@ -182,6 +224,7 @@ canvas.addEventListener("mouseup", () =>
     { 
         cursor.active = false; 
         currentLineCommand = null;
+        toolPreviewCommand = null;
     });
 
 //function to simplify clearing the canvas

@@ -14,3 +14,5 @@ Credits:
 Had conversations with chatgpt about understanding the new requirements and changing my code to a interface/class structure.
 
 -chatgpt helped with refactoring my button code: https://chatgpt.com/share/6711c028-9a98-8001-aca3-9ed6c5cde3c3
+
+-used chatgpt to help with creating the tool preview and logic for step 7: https://chatgpt.com/share/6711d86b-7c54-8001-8ef0-90ff1d4e1b30
