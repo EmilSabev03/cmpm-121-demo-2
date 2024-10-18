@@ -12,10 +12,12 @@ interface Displayable
 class LineCommand implements Displayable
 {
     points: { x: number; y: number }[];
+    lineThickness: number;
 
-    constructor( x: number, y: number )
+    constructor( x: number, y: number, lineThickness: number )
     {
         this.points = [{ x, y }]
+        this.lineThickness = lineThickness;
     }
 
     drag(x: number, y: number)
@@ -26,7 +28,7 @@ class LineCommand implements Displayable
     display(context: CanvasRenderingContext2D)
     {
         context.strokeStyle = "black";
-        context.lineWidth = 4;
+        context.lineWidth = this.lineThickness;
         context.beginPath();
         const {x, y} = this.points[0];
         context.moveTo(x,y);
@@ -71,10 +73,11 @@ canvas.width = 256;
 canvas.height = 256;
 app.appendChild(canvas);
 
-//add array of points. redoPoints, and cursorCommand
+//add array of commands. redoCommands, cursorCommand, and currentLineThickness
 let commands: LineCommand[] = [];
 let redoCommands: LineCommand[] = [];
 let cursorCommand: CursorCommand | null = null;
+let currentLineThickness: number = 4;
 
 //add context and cursor to draw
 const context = canvas.getContext("2d");
@@ -101,59 +104,60 @@ function redraw()
     }
 }
 
+//add drawing changed and cursor changed events to bus
 bus.addEventListener("drawing-changed", redraw);
 bus.addEventListener("cursor-changed", redraw);
 
 
-//add event listener and button for clear
-const clearButton = document.createElement("button");
-clearButton.innerHTML = "clear";
-document.body.append(clearButton);
-
-clearButton.addEventListener("click", () => 
-{
-    if (context != null) { clearCanvas(); }
-    commands.length = 0;
-    redoCommands.length = 0;
-    notify("drawing-changed");
+//add all buttons and their respective event listeners to the webpage
+createButton("clear", () =>
+{ 
+    if (context != null) { clearCanvas(); } 
+    commands.length = 0; 
+    redoCommands.length = 0; 
+    notify("drawing-changed"); 
 });
 
-//add event listener and button for undo
-const undoButton = document.createElement("button");
-undoButton.innerHTML = "undo";
-document.body.append(undoButton);
+createButton("undo", () => 
+{ 
+    if (commands.length > 0) 
+    { 
+        const undoLine = commands.pop(); 
+        redoCommands.push(undoLine!); 
+        notify("drawing-changed"); 
+    } 
+});
 
-undoButton.addEventListener("click", () => 
+createButton("redo", () => 
 {
-    if (commands.length > 0)
-    {
-        const undoLine = commands.pop()!;
-        redoCommands.push(undoLine);
+    if (redoCommands.length > 0) 
+    { 
+        const redoLine = redoCommands.pop(); 
+        commands.push(redoLine!); 
         notify("drawing-changed");
     }
 });
 
-//add event listener and button for redo
-const redoButton = document.createElement("button");
-redoButton.innerHTML = "redo";
-document.body.append(redoButton);
+const thinButton = createButton("thin marker", () => { currentLineThickness = 1; });
+const thickButton = createButton("thick marker", () => { currentLineThickness = 4; });
 
-redoButton.addEventListener("click", () => 
+
+//function that helps simplify button and event listeners
+function createButton(buttonText, onClick) 
 {
-    if (redoCommands.length > 0)
-    {
-        const redoLine = redoCommands.pop()!;
-        commands.push(redoLine);
-        notify("drawing-changed");
-    }
-});
+    const button = document.createElement("button");
+    button.innerHTML = buttonText;
+    button.addEventListener("click", onClick);
+    document.body.append(button);
+    return button;
+}
 
 let currentLineCommand: LineCommand | null = null;
 
 //add event listeners for mouse movement
 canvas.addEventListener("mousedown", (event) => 
 {
-    currentLineCommand = new LineCommand(event.offsetX, event.offsetY);
+    currentLineCommand = new LineCommand(event.offsetX, event.offsetY, currentLineThickness);
     commands.push(currentLineCommand);
     redoCommands.length = 0;
     notify("drawing-changed");
@@ -174,32 +178,14 @@ canvas.addEventListener("mousemove", (event) =>
     }
 });
 
-canvas.addEventListener("mouseup", () => { cursor.active = false; });
-canvas.addEventListener("drawing-changed", (event) => { drawingChangedObserver(); })
+canvas.addEventListener("mouseup", () => 
+    { 
+        cursor.active = false; 
+        currentLineCommand = null;
+    });
 
-//function to simplify cleaning the canvas
+//function to simplify clearing the canvas
 function clearCanvas()
 {
     context?.clearRect(0, 0, canvas.width, canvas.height);
-}
-
-//observer for drawing-changed event
-function drawingChangedObserver()
-{
-    if (context != null)
-    {
-        clearCanvas();
-        context.beginPath();
-
-        for (const line of commands)
-        {
-            line.display(context);
-        }
-        
-        if (cursor.active)
-        {
-            const cursorCommand = new CursorCommand(cursor.x, cursor.y);
-            cursorCommand.display(context);
-        }
-    }
 }

@@ -13,3 +13,4 @@ Credits:
 -changed a lot of my code structure to align with the example for step 5: https://quant-paint.glitch.me/paint2.html
 Had conversations with chatgpt about understanding the new requirements and changing my code to a interface/class structure.
 
+-chatgpt helped with refactoring my button code: https://chatgpt.com/share/6711c028-9a98-8001-aca3-9ed6c5cde3c3
