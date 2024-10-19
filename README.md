@@ -2,7 +2,7 @@ Name: Emil Sabev
 Assignment: D2: Sticker Sketchpad
 Description: Short but functional canvas sketching webpage with buttons
 
-Credits:
+Credits/Notes:
 
 -used and modified this event listener code for Step 2: https://quant-paint.glitch.me/paint0.html
 
@@ -16,3 +16,6 @@ Had conversations with chatgpt about understanding the new requirements and chan
 -chatgpt helped with refactoring my button code: https://chatgpt.com/share/6711c028-9a98-8001-aca3-9ed6c5cde3c3
 
 -used chatgpt to help with creating the tool preview and logic for step 7: https://chatgpt.com/share/6711d86b-7c54-8001-8ef0-90ff1d4e1b30
+
+-had conversations with chatgpt about figuring out how to implement the new sticker functionality on top of and combining it with my previous code: https://chatgpt.com/share/671376fe-e7e0-8001-a310-6fab6338429b 
+
