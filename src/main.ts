@@ -8,7 +8,7 @@ interface Displayable
     display(context: CanvasRenderingContext2D): void;
 }
 
-//define class that handles line commands
+//define class for line commands
 class LineCommand implements Displayable
 {
     points: { x: number; y: number }[];
@@ -41,7 +41,7 @@ class LineCommand implements Displayable
 
 }
 
-//define class that handles cursor commands
+//define class for cursor commands
 class CursorCommand implements Displayable
 {
     x: number;
@@ -60,7 +60,7 @@ class CursorCommand implements Displayable
     }
 }
 
-//define class that handles tool preview command
+//define class for tool preview commands
 class ToolPreviewCommand implements Displayable
 {
     x: number;
@@ -84,6 +84,54 @@ class ToolPreviewCommand implements Displayable
     }
 }
 
+//define class that for sticker commands
+class StickerCommand implements Displayable
+{
+    x: number;
+    y: number;
+    sticker: string;
+
+    constructor(x: number, y: number, sticker: string)
+    {
+        this.x = x - 32;
+        this.y = y - 3;
+        this.sticker = sticker;
+    }
+
+    display(context: CanvasRenderingContext2D)
+    {
+        context.font = "32px monospace";
+        context.fillText(this.sticker, this.x, this.y);
+    }
+
+    drag(x: number, y: number)
+    {
+        this.x = x - 32;
+        this.y = y - 3;
+    }
+}
+
+//define class for sticker emoji preview
+class StickerPreviewCommand implements Displayable
+{
+    x: number;
+    y: number;
+    sticker: string;
+
+    constructor(x: number, y: number, sticker: string)
+    {
+        this.x = x - 32;
+        this.y = y - 3;
+        this.sticker = sticker;
+    }
+
+    display(context: CanvasRenderingContext2D)
+    {
+        context.font = "32px monospace";
+        context.fillText(this.sticker, this.x, this.y);
+    }
+}
+
 //add title to webpage
 const title = "Sticker Sketchpad";
 document.title = title;
@@ -97,15 +145,19 @@ canvas.width = 256;
 canvas.height = 256;
 app.appendChild(canvas);
 
-//add array of commands and redoCommands
-let commands: LineCommand[] = [];
-let redoCommands: LineCommand[] = [];
+//add array of commands, redoCommands, and stickers
+let commands: (LineCommand | StickerCommand)[] = [];
+let redoCommands: (LineCommand | StickerCommand)[] = [];
+let stickers = ['🤠', '😎', '🎃'];
 
 //define global variables to handle commands
 let cursorCommand: CursorCommand | null = null;
-let currentLineThickness: number = 4;
+let currentLineThickness: number = 4.5;
 let toolPreviewCommand: ToolPreviewCommand | null = null;
 let currentLineCommand: LineCommand | null = null;
+let stickerPreviewCommand: StickerPreviewCommand | null = null;
+let stickerCommand: StickerCommand | null = null;
+let currentSticker: string | null = null;
 
 //add context and cursor to draw
 const context = canvas.getContext("2d");
@@ -134,6 +186,11 @@ function redraw()
     if (toolPreviewCommand && !cursor.active)
     {
         toolPreviewCommand?.display(context!);
+    }
+
+    if (stickerPreviewCommand && currentSticker)
+    {
+        stickerPreviewCommand.display(context!);
     }
 
     
@@ -174,9 +231,29 @@ createButton("redo", () =>
     }
 });
 
-const thinButton = createButton("thin marker", () => { currentLineThickness = 1; });
-const thickButton = createButton("thick marker", () => { currentLineThickness = 4; });
+createButton("thin marker", () => 
+{ 
+    currentLineThickness = 2; 
+    currentSticker = null;
+    stickerCommand = null;
+});
 
+createButton("thick marker", () => 
+{ 
+    currentLineThickness = 4.5; 
+    currentSticker = null;
+    stickerCommand = null;
+});
+
+stickers.forEach((sticker) => 
+{
+    createButton(sticker, () => 
+    {
+        currentSticker = sticker;
+        stickerPreviewCommand = new StickerPreviewCommand(cursor.x, cursor.y, currentSticker);
+        notify("tool-moved");
+    });
+});
 
 //function that helps simplify button and event listeners
 function createButton(buttonText, onClick) 
@@ -192,10 +269,22 @@ function createButton(buttonText, onClick)
 //event listeners for mouse input
 canvas.addEventListener("mousedown", (event) => 
 {
-    currentLineCommand = new LineCommand(event.offsetX, event.offsetY, currentLineThickness);
-    commands.push(currentLineCommand);
-    redoCommands.length = 0;
+    if (currentSticker)
+    {
+        stickerCommand = new StickerCommand(event.offsetX, event.offsetY, currentSticker);
+        commands.push(stickerCommand);
+        redoCommands.length = 0;
+    }
+
+    else
+    {
+        currentLineCommand = new LineCommand(event.offsetX, event.offsetY, currentLineThickness);
+        commands.push(currentLineCommand);
+        redoCommands.length = 0;
+    }
+
     notify("drawing-changed");
+
 });
 
 canvas.addEventListener("mousemove", (event) => 
@@ -209,7 +298,17 @@ canvas.addEventListener("mousemove", (event) =>
     if (event.buttons === 0)
     {
         cursor.active = false;
-        toolPreviewCommand = new ToolPreviewCommand(cursor.x, cursor.y, currentLineThickness);
+
+        if (currentSticker)
+        {
+            stickerPreviewCommand = new StickerPreviewCommand(event.offsetX, event.offsetY, currentSticker);
+        }
+
+        else
+        {
+            toolPreviewCommand = new ToolPreviewCommand(cursor.x, cursor.y, currentLineThickness);
+        }
+    
         notify("tool-moved");
     }
 
@@ -218,14 +317,20 @@ canvas.addEventListener("mousemove", (event) =>
         currentLineCommand.drag(event.offsetX, event.offsetY);
         notify("drawing-changed");
     }
+
+    if (event.buttons === 1 && stickerCommand != null)
+    {
+        stickerCommand.drag(event.offsetX, event.offsetY);
+        notify("drawing-changed");
+    }
 });
 
 canvas.addEventListener("mouseup", () => 
-    { 
-        cursor.active = false; 
-        currentLineCommand = null;
-        toolPreviewCommand = null;
-    });
+{ 
+    cursor.active = false; 
+    currentLineCommand = null;
+    toolPreviewCommand = null;
+});
 
 //function to simplify clearing the canvas
 function clearCanvas()
