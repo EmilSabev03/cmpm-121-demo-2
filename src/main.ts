@@ -41,25 +41,6 @@ class LineCommand implements Displayable
 
 }
 
-//define class for cursor commands
-class CursorCommand implements Displayable
-{
-    x: number;
-    y: number;
-
-    constructor (x: number, y: number)
-    {
-        this.x = x;
-        this.y = y;
-    }
-
-    display(context: CanvasRenderingContext2D)
-    {
-        context.font = "32px monospace";
-        context.fillText("*", this.x - 8, this.y + 16);
-    }
-}
-
 //define class for tool preview commands
 class ToolPreviewCommand implements Displayable
 {
@@ -132,6 +113,11 @@ class StickerPreviewCommand implements Displayable
     }
 }
 
+
+
+// For a vertical layout with buttons below the canvas
+document.body.style.flexDirection = "column";
+
 //add title to webpage
 const title = "Sticker Sketchpad";
 document.title = title;
@@ -146,12 +132,11 @@ canvas.height = 256;
 app.appendChild(canvas);
 
 //add array of commands, redoCommands, and stickers
-let commands: (LineCommand | StickerCommand)[] = [];
-let redoCommands: (LineCommand | StickerCommand)[] = [];
-let stickers = ['🤠', '😎', '🎃'];
+const commands: (LineCommand | StickerCommand)[] = [];
+const redoCommands: (LineCommand | StickerCommand)[] = [];
+const stickers = ['🤠', '😎', '🎃'];
 
 //define global variables to handle commands
-let cursorCommand: CursorCommand | null = null;
 let currentLineThickness: number = 4.5;
 let toolPreviewCommand: ToolPreviewCommand | null = null;
 let currentLineCommand: LineCommand | null = null;
@@ -177,11 +162,6 @@ function redraw()
 {
     clearCanvas();
     commands.forEach((command) => command.display(context!));
-
-    if (cursorCommand)
-    {
-        cursorCommand.display(context!);
-    }
     
     if (toolPreviewCommand && !cursor.active)
     {
@@ -256,7 +236,7 @@ stickers.forEach((sticker) =>
 });
 
 //function that helps simplify button and event listeners
-function createButton(buttonText, onClick) 
+function createButton(buttonText: string, onClick: () => void) 
 {
     const button = document.createElement("button");
     button.innerHTML = buttonText;
@@ -264,6 +244,7 @@ function createButton(buttonText, onClick)
     document.body.append(button);
     return button;
 }
+
 
 
 //event listeners for mouse input
