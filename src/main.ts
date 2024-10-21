@@ -65,7 +65,7 @@ class ToolPreviewCommand implements Displayable
     }
 }
 
-//define class that for sticker commands
+//define class for sticker commands
 class StickerCommand implements Displayable
 {
     x: number;
@@ -225,6 +225,32 @@ createButton("thick marker", () =>
     stickerCommand = null;
 });
 
+//custom sticker button that handles user input
+createButton("create custom sticker", () =>
+{
+    let userInput: boolean = true;
+    while (userInput)
+    {
+        const text = prompt("Enter custom stickers (-1 to exit)");
+        if (text === "-1")
+        {
+            userInput = false;
+        }
+
+        else if (text !== null && text.trim() !== "")
+        {
+            stickers.push(text);
+            createButton(text, () => 
+            {
+                currentSticker = text;
+                stickerPreviewCommand = new StickerPreviewCommand(cursor.x, cursor.y, currentSticker);
+                notify("tool-moved");
+            });
+        }
+    }
+});
+
+//adds the initial stickers
 stickers.forEach((sticker) => 
 {
     createButton(sticker, () => 
