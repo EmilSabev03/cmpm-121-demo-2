@@ -225,6 +225,37 @@ createButton("thick marker", () =>
     stickerCommand = null;
 });
 
+//exports a 1024x1024 png file of the drawing
+createButton("export", () =>
+{
+    const scaledCanvas = document.createElement("canvas");
+    scaledCanvas.width = 1024;
+    scaledCanvas.height = 1024;
+    app.appendChild(scaledCanvas);
+
+    const exportContext = scaledCanvas.getContext("2d");
+
+    if (exportContext!)
+    {
+        exportContext.scale(4, 4);
+        commands.forEach(command => 
+        {
+            command.display(exportContext);
+        });
+    }
+    
+    const anchor = document.createElement("a");
+    anchor.href = scaledCanvas.toDataURL("image/png");
+    anchor.download = "sketchpad.png";
+    anchor.click();
+
+    if (scaledCanvas.parentElement !== null)
+    {
+        scaledCanvas.parentElement.removeChild(scaledCanvas);
+    }
+    
+});
+
 //custom sticker button that handles user input
 createButton("create custom sticker", () =>
 {
