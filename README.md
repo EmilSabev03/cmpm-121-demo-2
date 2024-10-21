@@ -33,3 +33,7 @@ Step 9:
 
 Step 10:
 -used some code from this site to remove scaled canvas after use: https://stackoverflow.com/questions/56393051/remove-canvas-element-on-click-with-typescript
+
+Step 11:
+
+Step 12:

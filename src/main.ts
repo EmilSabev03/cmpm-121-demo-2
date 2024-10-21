@@ -81,7 +81,7 @@ class StickerCommand implements Displayable
 
     display(context: CanvasRenderingContext2D)
     {
-        context.font = "32px monospace";
+        context.font = "50px monospace";
         context.fillText(this.sticker, this.x, this.y);
     }
 
@@ -108,8 +108,9 @@ class StickerPreviewCommand implements Displayable
 
     display(context: CanvasRenderingContext2D)
     {
-        context.font = "32px monospace";
+        context.font = "50px monospace";
         context.fillText(this.sticker, this.x, this.y);
+
     }
 }
 
@@ -144,10 +145,17 @@ let stickerPreviewCommand: StickerPreviewCommand | null = null;
 let stickerCommand: StickerCommand | null = null;
 let currentSticker: string | null = null;
 
-//add context and cursor to draw
+//add context and style elements, with cursor to draw
 const context = canvas.getContext("2d");
 const cursor = { active: false, x: 0, y: 0 };
 
+if (context)
+{
+    context.shadowColor = 'rgba(0, 0, 0, 0.5)';
+    context.shadowBlur = 5;
+    context.shadowOffsetX = 2;
+    context.shadowOffsetY = 2;
+}
 
 //add event bus and notify function
 const bus = new EventTarget();
