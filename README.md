@@ -37,3 +37,5 @@ Step 10:
 Step 11:
 
 Step 12:
+-used the getRandomColor() function from this forum to implement the random marker colors: https://gist.github.com/mucar/3898821
+-chatgpt helped with figuring out the random stroke colors implementation: https://chatgpt.com/share/67177fe9-9360-8010-80fd-a1216d76bc81

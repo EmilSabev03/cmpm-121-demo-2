@@ -13,11 +13,13 @@ class LineCommand implements Displayable
 {
     points: { x: number; y: number }[];
     lineThickness: number;
+    currentStroke: string;
 
-    constructor( x: number, y: number, lineThickness: number )
+    constructor( x: number, y: number, lineThickness: number, currentStroke: string)
     {
         this.points = [{ x, y }]
         this.lineThickness = lineThickness;
+        this.currentStroke = currentStroke;
     }
 
     drag(x: number, y: number)
@@ -27,7 +29,7 @@ class LineCommand implements Displayable
 
     display(context: CanvasRenderingContext2D)
     {
-        context.strokeStyle = "black";
+        context.strokeStyle = this.currentStroke;
         context.lineWidth = this.lineThickness;
         context.beginPath();
         const {x, y} = this.points[0];
@@ -47,19 +49,21 @@ class ToolPreviewCommand implements Displayable
     x: number;
     y: number;
     lineThickness: number;
+    currentStroke: string;
 
-    constructor(x: number, y: number, lineThickness: number)
+    constructor(x: number, y: number, lineThickness: number, currentStroke: string)
     {
         this.x = x;
         this.y = y;
         this.lineThickness = lineThickness;
+        this.currentStroke = currentStroke;
     }
 
     display(context: CanvasRenderingContext2D)
     {
+        context.fillStyle = this.currentStroke;
         context.beginPath();
-        context.arc(this.x, this.y, this.lineThickness / 2, 0, Math.PI * 2);
-        context.fillStyle = 'black';
+        context.arc(this.x, this.y, this.lineThickness / 1.5, 0, Math.PI * 2);
         context.fill();
         context.closePath();
     }
@@ -132,18 +136,19 @@ canvas.width = 256;
 canvas.height = 256;
 app.appendChild(canvas);
 
-//add array of commands, redoCommands, and stickers
+//define command and sticker array, with their global variables
 const commands: (LineCommand | StickerCommand)[] = [];
 const redoCommands: (LineCommand | StickerCommand)[] = [];
 const stickers = ['🤠', '😎', '🎃'];
 
-//define global variables to handle commands
 let currentLineThickness: number = 4.5;
 let toolPreviewCommand: ToolPreviewCommand | null = null;
 let currentLineCommand: LineCommand | null = null;
 let stickerPreviewCommand: StickerPreviewCommand | null = null;
 let stickerCommand: StickerCommand | null = null;
 let currentSticker: string | null = null;
+let currentStroke: string | null = null;
+let canUserDraw: boolean = false;
 
 //add context and style elements, with cursor to draw
 const context = canvas.getContext("2d");
@@ -193,6 +198,10 @@ bus.addEventListener("tool-moved", redraw);
 //add all buttons and their respective event listeners to the webpage
 createButton("clear", () =>
 { 
+    currentSticker = null;
+    toolPreviewCommand = null;
+    canUserDraw = false;
+
     if (context != null) { clearCanvas(); } 
     commands.length = 0; 
     redoCommands.length = 0; 
@@ -221,6 +230,13 @@ createButton("redo", () =>
 
 createButton("thin marker", () => 
 { 
+    canUserDraw = true;
+    if (context)
+    {
+        currentStroke = getRandomColor();
+        context.strokeStyle = currentStroke;
+    }
+
     currentLineThickness = 2; 
     currentSticker = null;
     stickerCommand = null;
@@ -228,6 +244,13 @@ createButton("thin marker", () =>
 
 createButton("thick marker", () => 
 { 
+    canUserDraw = true;
+    if (context)
+    {
+        currentStroke = getRandomColor();
+        context.strokeStyle = currentStroke;
+    }
+
     currentLineThickness = 4.5; 
     currentSticker = null;
     stickerCommand = null;
@@ -236,6 +259,7 @@ createButton("thick marker", () =>
 //exports a 1024x1024 png file of the drawing
 createButton("export", () =>
 {
+    canUserDraw = false;
     const scaledCanvas = document.createElement("canvas");
     scaledCanvas.width = 1024;
     scaledCanvas.height = 1024;
@@ -322,9 +346,9 @@ canvas.addEventListener("mousedown", (event) =>
         redoCommands.length = 0;
     }
 
-    else
+    else if (canUserDraw)
     {
-        currentLineCommand = new LineCommand(event.offsetX, event.offsetY, currentLineThickness);
+        currentLineCommand = new LineCommand(event.offsetX, event.offsetY, currentLineThickness, currentStroke!);
         commands.push(currentLineCommand);
         redoCommands.length = 0;
     }
@@ -350,9 +374,9 @@ canvas.addEventListener("mousemove", (event) =>
             stickerPreviewCommand = new StickerPreviewCommand(event.offsetX, event.offsetY, currentSticker);
         }
 
-        else
+        else if (canUserDraw)
         {
-            toolPreviewCommand = new ToolPreviewCommand(cursor.x, cursor.y, currentLineThickness);
+            toolPreviewCommand = new ToolPreviewCommand(cursor.x, cursor.y, currentLineThickness, currentStroke!);
         }
     
         notify("tool-moved");
@@ -382,4 +406,17 @@ canvas.addEventListener("mouseup", () =>
 function clearCanvas()
 {
     context?.clearRect(0, 0, canvas.width, canvas.height);
+}
+
+//function to pick a random marker color
+function getRandomColor()
+{
+    const letters = '0123456789ABCDEF';
+    let color = '#';
+    for (let i = 0; i < 6; i++) 
+    {
+        color += letters[Math.floor(Math.random() * 16)];
+    }
+
+    return color;
 }
