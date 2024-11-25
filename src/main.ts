@@ -228,33 +228,21 @@ createButton("redo", () =>
     }
 });
 
-createButton("thin marker", () => 
-{ 
-    canUserDraw = true;
-    if (context)
-    {
+function createToolButton(label: string, lineThickness: number) {
+    createButton(label, () => {
+        canUserDraw = true;
+        currentLineThickness = lineThickness;
         currentStroke = getRandomColor();
-        context.strokeStyle = currentStroke;
-    }
+        currentSticker = null;
+        stickerCommand = null;
+        notify("tool-changed");
+    });
+}
 
-    currentLineThickness = 2; 
-    currentSticker = null;
-    stickerCommand = null;
-});
+// your new thin and thick marker button creation for better readability. 
+createToolButton("thin marker", 2);
+createToolButton("thick marker", 4.5);
 
-createButton("thick marker", () => 
-{ 
-    canUserDraw = true;
-    if (context)
-    {
-        currentStroke = getRandomColor();
-        context.strokeStyle = currentStroke;
-    }
-
-    currentLineThickness = 4.5; 
-    currentSticker = null;
-    stickerCommand = null;
-});
 
 //exports a 1024x1024 png file of the drawing
 createButton("export", () =>
